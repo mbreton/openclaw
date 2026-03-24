@@ -1,4 +1,4 @@
-# openclaw-proxify
+# openclaw
 
 Runs [openclaw](https://github.com/openclaw/openclaw) behind [open-claw-secure-proxy](https://github.com/mathieu/open-claw-secure-proxy) to intercept and rewrite outgoing HTTP/HTTPS headers (e.g. inject credentials from 1Password).
 
@@ -54,8 +54,8 @@ openclaw is available at `http://localhost:18789`.
 The GitHub Actions workflow builds a hardened image with the CA baked in:
 
 ```
-ghcr.io/<your-org>/openclaw-proxify:latest
-ghcr.io/<your-org>/openclaw-proxify:v2026.3.23
+ghcr.io/<your-org>/openclaw:latest
+ghcr.io/<your-org>/openclaw:v2026.3.23
 ```
 
 To use it in production, replace the `build:` key in `docker-compose.yml` with `image:`.

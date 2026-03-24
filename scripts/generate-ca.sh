@@ -18,7 +18,7 @@ openssl genrsa -out "$KEY" 2048
 openssl req -new -x509 -days 3650 \
   -key "$KEY" \
   -out "$CRT" \
-  -subj "/CN=OpenClaw Proxy CA/O=openclaw-proxify/C=US"
+  -subj "/CN=OpenClaw Proxy CA/O=openclaw/C=US"
 
 echo ""
 echo "Generated:"
