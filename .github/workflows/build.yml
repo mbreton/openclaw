@@ -1,0 +1,69 @@
+name: Build and push image
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - Dockerfile
+      - OPENCLAW_VERSION
+      - .github/workflows/build.yml
+  workflow_dispatch:
+    inputs:
+      openclaw_version:
+        description: "openclaw version to build (leave blank to use OPENCLAW_VERSION file)"
+        required: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Resolve openclaw version
+        id: version
+        run: |
+          VERSION="${{ inputs.openclaw_version }}"
+          if [ -z "$VERSION" ]; then
+            VERSION="$(cat OPENCLAW_VERSION | tr -d '[:space:]')"
+          fi
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          echo "Building for openclaw $VERSION"
+
+      - name: Write proxy CA certificate
+        run: echo "${{ secrets.PROXY_CA_CERT_B64 }}" | base64 -d > proxy-ca.crt
+
+      - name: Set up QEMU (multi-arch)
+        uses: docker/setup-qemu-action@v3
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and push
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          push: true
+          platforms: linux/amd64,linux/arm64
+          build-args: |
+            OPENCLAW_VERSION=${{ steps.version.outputs.version }}
+            CA_CERT_B64=${{ secrets.PROXY_CA_CERT_B64 }}
+          tags: |
+            ghcr.io/${{ github.repository }}:latest
+            ghcr.io/${{ github.repository }}:${{ steps.version.outputs.version }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+          labels: |
+            org.opencontainers.image.source=https://github.com/${{ github.repository }}
+            org.opencontainers.image.revision=${{ github.sha }}
+            openclaw.upstream.version=${{ steps.version.outputs.version }}

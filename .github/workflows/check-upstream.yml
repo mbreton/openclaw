@@ -1,0 +1,49 @@
+name: Check upstream openclaw release
+
+on:
+  schedule:
+    # Runs daily at 08:00 UTC
+    - cron: "0 8 * * *"
+  workflow_dispatch:
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Get latest openclaw release
+        id: latest
+        run: |
+          VERSION=$(gh api repos/openclaw/openclaw/releases/latest --jq '.tag_name')
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          echo "Latest upstream: $VERSION"
+        env:
+          GH_TOKEN: ${{ github.token }}
+
+      - name: Get current tracked version
+        id: current
+        run: |
+          VERSION="$(cat OPENCLAW_VERSION | tr -d '[:space:]')"
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          echo "Currently tracked: $VERSION"
+
+      - name: Bump version and trigger build
+        if: steps.latest.outputs.version != steps.current.outputs.version
+        run: |
+          echo "${{ steps.latest.outputs.version }}" > OPENCLAW_VERSION
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add OPENCLAW_VERSION
+          git commit -m "chore: bump openclaw to ${{ steps.latest.outputs.version }}"
+          git push
+          echo "Bumped ${{ steps.current.outputs.version }} -> ${{ steps.latest.outputs.version }}"
+        env:
+          GH_TOKEN: ${{ github.token }}
+
+      - name: Already up to date
+        if: steps.latest.outputs.version == steps.current.outputs.version
+        run: echo "Already on latest openclaw ${{ steps.current.outputs.version }}, nothing to do."

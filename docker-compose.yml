@@ -1,0 +1,46 @@
+services:
+  proxy:
+    build: ../open-claw-secure-proxy
+    networks:
+      - proxy-net
+    environment:
+      - PROXY_PORT=8080
+      - CA_CERT=${CA_CERT}
+      - CA_KEY=${CA_KEY}
+      - CREDENTIAL_MAP=${CREDENTIAL_MAP:-[]}
+      - OP_SERVICE_ACCOUNT_TOKEN=${OP_SERVICE_ACCOUNT_TOKEN:-}
+    healthcheck:
+      test: ["CMD-SHELL", "curl -s -o /dev/null http://localhost:8080"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+      start_period: 10s
+
+  openclaw:
+    build:
+      context: .
+      args:
+        # CA_CERT_B64 is not passed here: the cert is mounted at runtime instead.
+        # This avoids rebuilding the image every time the CA changes locally.
+        OPENCLAW_VERSION: ${OPENCLAW_VERSION:-latest}
+    networks:
+      - proxy-net
+    depends_on:
+      proxy:
+        condition: service_healthy
+    environment:
+      - HTTP_PROXY=http://proxy:8080
+      - HTTPS_PROXY=http://proxy:8080
+      - http_proxy=http://proxy:8080
+      - https_proxy=http://proxy:8080
+      - NO_PROXY=localhost,127.0.0.1
+      # Node.js picks up extra CA certs from this path without rebuilding the image.
+      - NODE_EXTRA_CA_CERTS=/app/proxy-ca.crt
+    volumes:
+      - ./proxy-ca.crt:/app/proxy-ca.crt:ro
+    ports:
+      - "${OPENCLAW_PORT:-18789}:18789"
+
+networks:
+  proxy-net:
+    driver: bridge
