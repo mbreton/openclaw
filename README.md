@@ -74,15 +74,3 @@ The script prints the exact `gh secret set` commands after generating the CA.
 
 You can also trigger a manual build from the Actions tab with an explicit version override.
 
-## Header rewriting
-
-Set `CREDENTIAL_MAP` in `.env` to configure which headers the proxy rewrites:
-
-```json
-[
-  { "header": "Authorization", "value": "op://MyVault/MyItem/password" },
-  { "header": "X-Api-Key",     "value": "op://MyVault/OtherItem/credential" }
-]
-```
-
-See [open-claw-secure-proxy](https://github.com/mathieu/open-claw-secure-proxy) for full documentation.
